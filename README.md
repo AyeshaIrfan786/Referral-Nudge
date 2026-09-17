@@ -38,7 +38,7 @@ Agents/
 ├── templates/
 │   └── index.html       # Chat UI for the Flask demo
 ├── requirements.txt
-└── .env                  # GEMINI_API_KEY (not committed - see below)
+└── .envexample                 
 ```
 
 ## Setup
@@ -110,23 +110,6 @@ python state.py
 | `BACKUP_CONTACT` | `nudge.py` | `"Dr. Senior (on-call supervisor)"` | Who gets the escalation |
 | `model_name` | `extract.py` | `gemini-flash-lite-latest` | Gemini model used for extraction |
 
-## Before you push
-
-This repo currently includes a few files that shouldn't go to GitHub as-is. Before pushing, create a `.gitignore` with:
-
-```
-.env
-__pycache__/
-*.pyc
-referrals.db
-```
-
-Then remove the already-tracked copies:
-
-```bash
-git rm --cached .env referrals.db
-git rm -r --cached __pycache__
-```
 
 ## Tech stack
 
@@ -142,6 +125,4 @@ git rm -r --cached __pycache__
 - Add a dashboard view over `get_all_referrals()` for at-a-glance status across all referrals
 - Support acknowledgment via emoji reaction, not just replies
 
-## License
 
-Add a license of your choice (e.g. MIT) before making this repository public.
