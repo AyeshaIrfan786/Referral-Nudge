@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Referral Coordination Agent - Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #ECE5DD;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .phone {
+    width: 420px;
+    height: 700px;
+    background: #ECE5DD;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+  .header {
+    background: #075E54;
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header .avatar {
+    width: 36px; height: 36px;
+    background: #128C7E;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .header .info .name { font-weight: 600; font-size: 15px; }
+  .header .info .status { font-size: 12px; opacity: 0.8; }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bubble-wrap {
+    display: flex;
+    flex-direction: column;
+    max-width: 78%;
+  }
+  .bubble-wrap.user { align-self: flex-end; align-items: flex-end; }
+  .bubble-wrap.bot { align-self: flex-start; align-items: flex-start; }
+
+  .sender-label {
+    font-size: 11px;
+    color: #667781;
+    margin: 4px 2px 2px 4px;
+  }
+
+  .bubble {
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 14.5px;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    position: relative;
+    cursor: pointer;
+  }
+  .bubble.user { background: #DCF8C6; border-top-right-radius: 2px; }
+  .bubble.bot { background: #FFFFFF; border-top-left-radius: 2px; }
+
+  .quoted {
+    border-left: 3px solid #075E54;
+    background: rgba(0,0,0,0.04);
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: #444;
+  }
+  .quoted .qsender { font-weight: 600; color: #075E54; }
+
+  .timestamp {
+    font-size: 10.5px;
+    color: #999;
+    margin-top: 2px;
+    text-align: right;
+  }
+
+  .reply-hint {
+    font-size: 10px;
+    color: #999;
+    margin-top: 1px;
+    cursor: pointer;
+  }
+  .bubble-wrap:hover .reply-hint { color: #075E54; text-decoration: underline; }
+
+  .composer {
+    background: #F0F0F0;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .replying-banner {
+    display: none;
+    background: white;
+    border-left: 3px solid #075E54;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: #444;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .replying-banner.active { display: flex; }
+  .replying-banner .cancel { cursor: pointer; color: #999; padding: 0 6px; }
+
+  .input-row { display: flex; gap: 8px; align-items: center; }
+  select, input[type=text] {
+    border: none;
+    border-radius: 18px;
+    padding: 9px 14px;
+    font-size: 14px;
+    outline: none;
+  }
+  select { background: white; flex: 0 0 110px; }
+  input[type=text] { background: white; flex: 1; }
+  button {
+    background: #075E54;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  button:hover { background: #128C7E; }
+
+  .app-wrap {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .status-panel {
+    width: 230px;
+    height: 700px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .status-panel .sp-header {
+    background: #075E54;
+    color: white;
+    padding: 14px 16px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .status-panel .sp-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .status-panel .sp-empty {
+    color: #999;
+    font-size: 12.5px;
+    padding: 8px 4px;
+  }
+  .sp-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+  .sp-card .sp-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .sp-card .sp-id { font-weight: 600; color: #333; }
+  .sp-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    color: white;
+    white-space: nowrap;
+  }
+  .sp-badge.PENDING { background: #E8A33D; }
+  .sp-badge.ACKNOWLEDGED { background: #3D7DE8; }
+  .sp-badge.COMPLETED { background: #2E9E5B; }
+  .sp-card .sp-line { color: #555; margin-top: 1px; }
+  .sp-card .sp-line b { color: #333; }
+</style>
+</head>
+<body>
+
+<div class="app-wrap">
+<div class="phone">
+  <div class="header">
+    <div class="avatar">🩺</div>
+    <div class="info">
+      <div class="name">Referral Group (Demo)</div>
+      <div class="status">Agent is watching this chat</div>
+    </div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="composer">
+    <div class="replying-banner" id="replyBanner">
+      <span id="replyBannerText"></span>
+      <span class="cancel" onclick="cancelReply()">✕</span>
+    </div>
+    <div class="input-row">
+      <select id="senderSelect">
+        <option>Dr. Ayesha</option>
+        <option>Dr. Bilal</option>
+        <option>Dr. Sara</option>
+      </select>
+      <input type="text" id="textInput" placeholder="Type a referral message..." onkeydown="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-panel">
+  <div class="sp-header">📋 Referral Status</div>
+  <div class="sp-list" id="statusList"></div>
+</div>
+</div>
+
+<script>
+let replyTarget = null;
+let lastRenderedCount = 0;
+
+function cancelReply() {
+  replyTarget = null;
+  document.getElementById('replyBanner').classList.remove('active');
+}
+
+function setReply(msgId, senderLabel, text) {
+  replyTarget = msgId;
+  document.getElementById('replyBannerText').textContent = `Replying to ${senderLabel}: ${text.slice(0, 40)}`;
+  document.getElementById('replyBanner').classList.add('active');
+  document.getElementById('textInput').focus();
+}
+
+async function sendMessage() {
+  const sender = document.getElementById('senderSelect').value;
+  const input = document.getElementById('textInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  await fetch('/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({sender, text, reply_to: replyTarget})
+  });
+
+  input.value = '';
+  cancelReply();
+  fetchMessages();
+}
+
+async function fetchMessages() {
+  const res = await fetch('/messages');
+  const msgs = await res.json();
+  if (msgs.length === lastRenderedCount) return; // no change, skip re-render
+  lastRenderedCount = msgs.length;
+
+  const container = document.getElementById('messages');
+  container.innerHTML = '';
+
+  const byId = {};
+  msgs.forEach(m => byId[m.id] = m);
+
+  msgs.forEach(m => {
+    const wrap = document.createElement('div');
+    wrap.className = `bubble-wrap ${m.type}`;
+
+    if (m.type === 'bot') {
+      const label = document.createElement('div');
+      label.className = 'sender-label';
+      label.textContent = m.sender;
+      wrap.appendChild(label);
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${m.type}`;
+
+    if (m.reply_to && byId[m.reply_to]) {
+      const quoted = document.createElement('div');
+      quoted.className = 'quoted';
+      const qsender = document.createElement('div');
+      qsender.className = 'qsender';
+      qsender.textContent = byId[m.reply_to].sender;
+      const qtext = document.createElement('div');
+      qtext.textContent = byId[m.reply_to].text.slice(0, 60);
+      quoted.appendChild(qsender);
+      quoted.appendChild(qtext);
+      bubble.appendChild(quoted);
+    }
+
+    const textNode = document.createElement('div');
+    textNode.textContent = m.text;
+    bubble.appendChild(textNode);
+
+    const time = document.createElement('div');
+    time.className = 'timestamp';
+    time.textContent = m.timestamp;
+    bubble.appendChild(time);
+
+    bubble.onclick = () => setReply(m.id, m.sender, m.text);
+
+    wrap.appendChild(bubble);
+
+    const hint = document.createElement('div');
+    hint.className = 'reply-hint';
+    hint.textContent = 'tap to reply';
+    hint.onclick = () => setReply(m.id, m.sender, m.text);
+    wrap.appendChild(hint);
+
+    container.appendChild(wrap);
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+setInterval(fetchMessages, 1500);
+fetchMessages();
+
+async function fetchStatus() {
+  const res = await fetch('/status');
+  const referrals = await res.json();
+
+  const list = document.getElementById('statusList');
+  list.innerHTML = '';
+
+  if (referrals.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'sp-empty';
+    empty.textContent = 'No referrals yet.';
+    list.appendChild(empty);
+    return;
+  }
+
+  referrals.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'sp-card';
+
+    const top = document.createElement('div');
+    top.className = 'sp-top';
+    const id = document.createElement('span');
+    id.className = 'sp-id';
+    id.textContent = `#${r.id} ${r.specialty || '—'}`;
+    const badge = document.createElement('span');
+    badge.className = `sp-badge ${r.status}`;
+    badge.textContent = r.status;
+    top.appendChild(id);
+    top.appendChild(badge);
+    card.appendChild(top);
+
+    const line1 = document.createElement('div');
+    line1.className = 'sp-line';
+    line1.innerHTML = `<b>${r.urgency}</b> · from ${r.sender}`;
+    card.appendChild(line1);
+
+    const line2 = document.createElement('div');
+    line2.className = 'sp-line';
+    line2.innerHTML = `→ <b>${r.assigned_to}</b>`;
+    card.appendChild(line2);
+
+    list.appendChild(card);
+  });
+}
+
+setInterval(fetchStatus, 1500);
+fetchStatus();
+</script>
+
+</body>
+</html>
